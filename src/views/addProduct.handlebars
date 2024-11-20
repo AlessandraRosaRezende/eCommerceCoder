@@ -1,0 +1,14 @@
+<h1>Adicionar Produto</h1>
+<form action="/addproduct" method="post">
+  <label>Nome: </label>
+  <input type="text" name="name" required>
+  <br>
+  <label>Preço: </label>
+  <input type="number" name="price" step="0.01" required>
+  <br>
+  <label>Descrição: </label>
+  <textarea name="description"></textarea>
+  <br>
+  <button type="submit">Adicionar</button>
+</form>
+<a href="/realtimeproducts">Cancelar</a>

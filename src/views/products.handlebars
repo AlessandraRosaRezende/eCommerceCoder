@@ -1,0 +1,15 @@
+<h1>Produtos</h1>
+<ul>
+  {{#each products}}
+  <li>
+    <strong>{{this.name}}</strong> - {{this.price}} USD
+    <button onclick="location.href='/products/{{this.id}}'">Ver detalhes</button>
+    <button onclick="location.href='/editproduct/{{this.id}}'">Editar</button>
+    <form action="/deleteproduct/{{this.id}}" method="post" style="display:inline;">
+      <button type="submit">Deletar</button>
+    </form>
+  </li>
+  {{/each}}
+</ul>
+<button onclick="location.href='/addproduct'">Adicionar Produto</button>
+<a href="/cart">Ver Carrinho</a>

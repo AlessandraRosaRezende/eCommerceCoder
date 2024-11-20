@@ -1,0 +1,30 @@
+<h1>Carrinho</h1>
+<ul>
+  {{#each cart}}
+  <li>
+    <strong>{{this.name}}</strong> - {{this.price}} USD - Quantidade: {{this.quantity}}
+
+    <!-- Botão para diminuir a quantidade -->
+    {{#if this.quantity}}
+    {{#if (gt this.quantity 1)}}
+    <form action="/decreaseQuantity/{{this.id}}" method="POST" style="display:inline;">
+      <button type="submit">Diminuir Quantidade</button>
+    </form>
+    {{/if}}
+    {{/if}}
+    
+    <!-- Botão para remover o produto -->
+    <form action="/removeFromCart/{{this.id}}" method="POST" style="display:inline;">
+      <button type="submit">Remover</button>
+    </form>
+  
+  </li>
+  {{/each}}
+</ul>
+
+<!-- Formulário para esvaziar o carrinho -->
+{{#if cart.length}}
+  <button id="clear-cart">Esvaziar Carrinho</button>
+{{/if}}
+
+<a href="/realtimeproducts">Voltar para Produtos</a>
