@@ -1,105 +1,140 @@
 const express = require("express");
-const path = require("path");
-const { readFile, writeFile } = require("../utils");
+const productModel = require("../models/product.model");
 
 const router = express.Router();
-const productsPath = path.join(__dirname, "../data/products.json");
 
-router.get("/", (req, res) => {
-  const products = readFile(productsPath);
-  if (products.length > 0) {
-    res.render("products", {
-      title: "Lista de Produtos",
-      products
-    });
-  } else {
-    res.render("home", {
-      title: "Lista de Produtos",
-      message: "Não há produtos cadastrados."
-    });
+router.get("/", async (req, res) => {
+  try { 
+    let products = await productModel.find();
+    console.log(products);
+    if (products.length > 0) {
+      products = products.map((product) => product.toJSON());
+      return res.render("products", {
+        title: "Lista de Produtos",
+        products
+      });
+    } else {
+      return res.render("home", {
+        title: "Lista de Produtos",
+        message: "Não há produtos cadastrados."
+      });
+    }
+  } catch(err){
+    return res.status(500).send("Erro ao buscar produtos.");
   }
 });
 
-router.get("/realtimeproducts", (req, res) => {
-  const products = readFile(productsPath);
-  res.render("products", { title: "Produtos", products });
+router.get("/realtimeproducts", async (req, res) => {
+  try {
+    let products = await productModel.find();
+    if (products.length > 0) {
+      products = products.map((product) => product.toJSON());
+      return res.render("products", {
+        title: "Lista de Produtos",
+        products
+      });
+    } else {
+      return res.render("home", {
+        title: "Lista de Produtos",
+        message: "Não há produtos cadastrados."
+      });
+    }
+  } catch (error) {
+    return res.status(500).send("Erro ao buscar produtos.");
+  }
 });
 
-router.get("/products/:id", (req, res) => {
-  const products = readFile(productsPath);
-  const product = products.find((p) => p.id === parseInt(req.params.id));
-  if (product) {
-    res.render("productDetails", { title: product.name, product });
-  } else {
-    res.status(404).send("Produto não encontrado.");
+router.get("/products/:id", async (req, res) => {
+  try {
+    let product = await productModel.findById(req.params.id);
+    if (product) {
+      product = product.toJSON();
+      return res.render("productDetails", { title: product.name, product });
+    } else {
+      return res.status(404).send("Produto não encontrado.");
+    }
+  } catch (error) {
+    return res.status(500).send("Erro ao buscar produto.");
   }
 });
 
 router.get("/addproduct", (req, res) => {
-  res.render("addProduct", { title: "Adicionar Produto" });
+  return res.render("addProduct", { title: "Adicionar Produto" });
 });
 
-router.post("/addproduct", (req, res) => {
-  const products = readFile(productsPath);
-  const newProduct = {
-    id: Date.now(),
-    name: req.body.name,
-    price: parseFloat(req.body.price),
-    description: req.body.description || "",
-  };
-  products.push(newProduct);
-  writeFile(productsPath, products);
-  const io = req.app.io; // Obtém o objeto io do app
-  if (io) {
-    io.emit("addProduct", products); // Atualiza a lista de produtos
-  } else {
-    console.error("WebSocket (io) não está disponível");
-  }
-  res.redirect("/realtimeproducts");
-});
-
-router.get("/editproduct/:id", (req, res) => {
-  const { id } = req.params;
-  const products = readFile(productsPath); // Lê os produtos existentes
-
-  const product = products.find((prod) => prod.id === parseInt(id)); // Encontra o produto pelo ID
-  if (!product) {
-    return res.status(404).send("Produto não encontrado");
-  }
-
-  res.render("editProduct", { product }); // Renderiza a página de edição
-});
-
-router.post("/editproduct/:id", (req, res) => {
-  const products = readFile(productsPath);
-  const productIndex = products.findIndex((p) => p.id === parseInt(req.params.id));
-  if (productIndex !== -1) {
-    products[productIndex] = {
-      ...products[productIndex],
+router.post("/addproduct", async (req, res) => {
+  try {
+    await productModel.create({
       name: req.body.name,
       price: parseFloat(req.body.price),
       description: req.body.description || "",
-    };
-    writeFile(productsPath, products);
-    const io = req.app.io;
+    });
+  
+    let products = await productModel.find();
+    products = products.map((product) => product.toJSON());
+    const io = req.app.io; // Obtém o objeto io do app
     if (io) {
-      io.emit("editProduct", products); // Atualiza a lista de produtos em tempo real
+      io.emit("addProduct", products); // Atualiza a lista de produtos
+    } else {
+      console.error("WebSocket (io) não está disponível");
     }
-    res.redirect("/realtimeproducts");
-  } else {
-    res.status(404).send("Produto não encontrado.");
+    return res.redirect("/realtimeproducts");
+  } catch (error) {
+    return res.status(500).send("Erro ao adicionar produto.");
   }
 });
 
-router.post("/deleteproduct/:id", (req, res) => {
-  const products = readFile(productsPath);
-  const filteredProducts = products.filter((p) => p.id !== parseInt(req.params.id));
-  writeFile(productsPath, filteredProducts);
-  const io = req.app.io;
-  if (io) {
-    io.emit("deleteProduct", products); // Atualiza a lista de produtos em tempo real
+router.get("/editproduct/:id", async (req, res) => {
+  console.log(req.params.id);
+  try {
+    let product = await productModel.findById(req.params.id);
+    if (product) {
+      product = product.toJSON();
+      return res.render("editProduct", { title: "Editar Produto", product });
+    } else {
+      return res.status(404).send("Produto não encontrado.");
+    }
+  } catch (error) {
+    res.status(500).send("Erro ao buscar produto.");
+  } 
+});
+
+router.post("/editproduct/:id", async (req, res) => {
+  try {
+    const products = await productModel.findById(req.params.id);
+    const { name, price, description } = req.body;
+    await productModel.findByIdAndUpdate(req.params.id, {
+      name,
+      price,
+      description,
+    });
+    if (products) {
+      const io = req.app.io;
+      if (io) {
+        io.emit("editProduct", products); // Atualiza a lista de produtos em tempo real
+      }
+      return res.redirect("/realtimeproducts");
+    } else {
+      return res.status(404).send("Produto não encontrado.");
+    }
+  } catch (error) {
+    res.status(500).send("Erro ao editar produto.");
   }
-  res.redirect("/realtimeproducts");
+});
+
+router.post("/deleteproduct/:id", async (req, res) => {
+  try {
+    let products = await productModel.findById(req.params.id);
+    products = products.toJSON();
+    await productModel.deleteOne({_id: req.params.id});
+    const io = req.app.io;
+    if (io) {
+      io.emit("deleteProduct", products); // Atualiza a lista de produtos em tempo real
+    }
+    return res.redirect("/realtimeproducts");
+  } catch (error) {
+    res.status(500).send("Erro ao excluir produto.");
+  }
 });
 
 module.exports = router;
