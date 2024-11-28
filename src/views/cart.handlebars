@@ -7,14 +7,14 @@
     <!-- Botão para diminuir a quantidade -->
     {{#if this.quantity}}
     {{#if (gt this.quantity 1)}}
-    <form action="/decreaseQuantity/{{this.id}}" method="POST" style="display:inline;">
+    <form action="/decreaseQuantity/{{this._id}}" method="POST" style="display:inline;">
       <button type="submit">Diminuir Quantidade</button>
     </form>
     {{/if}}
     {{/if}}
     
     <!-- Botão para remover o produto -->
-    <form action="/removeFromCart/{{this.id}}" method="POST" style="display:inline;">
+    <form action="/removeFromCart/{{this._id}}" method="POST" style="display:inline;">
       <button type="submit">Remover</button>
     </form>
   

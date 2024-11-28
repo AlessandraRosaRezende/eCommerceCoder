@@ -1,116 +1,157 @@
-const express = require("express");
-const path = require("path");
-const { readFile, writeFile } = require("../utils");
+const express = require('express');
+const cartModel = require('../models/cart.model');
+const productModel = require('../models/product.model');
 
 const router = express.Router();
-const cartPath = path.join(__dirname, "../data/cart.json");
-const productsPath = path.join(__dirname, "../data/products.json");
 
-router.get("/cart", (req, res) => {
-  const cart = readFile(cartPath);
-  res.render("cart", { title: "Carrinho", cart });
-});
-
-router.post("/cart", (req, res) => {
-  const products = readFile(productsPath);
-  const cart = readFile(cartPath);
-
-  const product = products.find((p) => p.id === parseInt(req.body.productId));
-  if (!product) {
-    return res.status(404).send("Produto não encontrado.");
-  }
-
-  const existingProduct = cart.find((item) => item.id === product.id);
-  if (existingProduct) {
-    existingProduct.quantity += parseInt(req.body.quantity);
-  } else {
-    cart.push({ ...product, quantity: parseInt(req.body.quantity) });
-  }
-
-  writeFile(cartPath, cart);
-  const io = req.app.io; // Obtém o objeto io do app
-  if (io) {
-    io.emit("updateCart", products);
-  } else {
-    console.error("WebSocket (io) não está disponível");
-  }
-  res.redirect("/cart");
-});
-
-// Rota para esvaziar o carrinho
-router.post("/clearcart", (req, res) => {
-  console.log("Requisição para esvaziar carrinho recebida");
-
+// Obter o carrinho do usuário
+router.get("/cart", async (req, res) => {
   try {
-    // Esvaziar o carrinho gravando um array vazio
-    const updatedCart = [];
-    writeFile(cartPath, updatedCart);
+    const cart = await cartModel.findOne(); // Obtém o carrinho do MongoDB
+    console.log(cart);
+    if (!cart || !cart.items || cart.items.length === 0) {
+      return res.render("cart", { title: "Carrinho", cart: [] });
+    } else {
+      let productsInCart = await productModel.find({ '_id': { $in: cart.items.map(item => item.productId) } });
+      productsInCart = productsInCart.map(product => {
+        const item = cart.items.find(item => item.productId.toString() === product._id.toString());
+        return {
+          ...product.toJSON(),
+          quantity: item.quantity
+        };
+      });
+      return res.render("cart", { title: "Carrinho", cart: productsInCart });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send("Erro ao buscar carrinho.");
+  }
+});
 
-    // Emissão do evento para todos os clientes (atualização do carrinho)
-    const io = req.app.io;
-    if (io) {
-      io.emit("clearCart", updatedCart); // Envia o carrinho atualizado para todos os clientes
+// Adicionar produto ao carrinho
+router.post("/cart", async (req, res) => {
+  try {
+    const { productId, quantity } = req.body;
+    console.log(req.body);
+
+    const product = await productModel.findById(productId); // Encontra o produto pelo ID
+    if (!product) {
+      return res.status(404).send("Produto não encontrado.");
     }
 
-    // Ao invés de enviar res.json(), agora vamos fazer o redirecionamento diretamente
-    res.redirect("/realtimeproducts"); // Redireciona para a página de produtos após esvaziar o carrinho
+    const cart = await cartModel.findOne();  // Obtém o carrinho
+    if (!cart) {
+      const newCart = await new cartModel({
+        items: [{ productId, quantity }]
+      });
+      await newCart.save();  // Cria um novo carrinho
+    } else {
+      const existingItem = cart.items.find(item => item.productId.toString() === productId);
+      if (existingItem) {
+        existingItem.quantity += parseInt(quantity);
+      } else {
+        cart.items.push({ productId, quantity });
+      }
+      await cart.save();  // Atualiza o carrinho no MongoDB
+    }
 
+    const io = req.app.io;
+    if (io) {
+      io.emit("updateCart", await cartModel.findOne()); // Emite o carrinho atualizado
+    }
+
+    res.redirect("/cart");
   } catch (error) {
-    console.error("Erro ao esvaziar o carrinho:", error);
-    res.status(500).json({ success: false, message: "Erro ao esvaziar o carrinho." });
+    console.log(error);
+    res.status(500).send("Erro ao adicionar produto ao carrinho.");
+  }
+});
+
+// Esvaziar carrinho
+router.post("/clearcart", async (req, res) => {
+  try {
+    await cartModel.deleteOne();  // Esvazia o carrinho no MongoDB
+    const io = req.app.io;
+    if (io) {
+      io.emit("clearCart", []);
+    }
+    res.redirect("/realtimeproducts");
+  } catch (error) {
+    res.status(500).send("Erro ao esvaziar carrinho.");
   }
 });
 
 // Rota para diminuir a quantidade de um produto no carrinho
-router.post("/decreaseQuantity/:productId", (req, res) => {
+router.post("/decreaseQuantity/:productId", async (req, res) => {
   const { productId } = req.params;
-  try {
-    let cart = readFile(cartPath); // Lê o carrinho atual (sem 'await', pois a função é síncrona)
 
-    const product = cart.find(item => item.id === parseInt(productId)); // Encontra o produto no carrinho
-    if (!product) {
+  try {
+    const cart = await cartModel.findOne(); // Obtém o carrinho
+    if (!cart) {
+      return res.status(404).send("Carrinho não encontrado.");
+    }
+
+    // Busca o item no carrinho
+    const itemIndex = cart.items.findIndex(
+      (item) => item.productId.toString() === productId
+    );
+
+    if (itemIndex === -1) {
       return res.status(404).send("Produto não encontrado no carrinho.");
     }
 
-    if (product.quantity > 1) {
-      product.quantity -= 1; // Diminui a quantidade se for maior que 1
+    // Reduz a quantidade ou remove o produto se for a última unidade
+    if (cart.items[itemIndex].quantity > 1) {
+      cart.items[itemIndex].quantity -= 1;
     } else {
-      cart = cart.filter(item => item.id !== parseInt(productId)); // Remove o produto se a quantidade for 1
+      cart.items.splice(itemIndex, 1); // Remove o produto do carrinho
     }
 
-    writeFile(cartPath, cart); // Grava o carrinho atualizado (sem 'await', pois a função é síncrona)
+    // Salva o carrinho atualizado no banco de dados
+    await cart.save();
 
-    // Emite um evento para todos os clientes notificando que o carrinho foi atualizado
+    // Emite o evento WebSocket para atualizar os clientes
     const io = req.app.io;
     if (io) {
-      io.emit("updateCart", cart); // Atualiza o carrinho para todos os clientes
+      io.emit("updateCart", cart);
     }
 
-    res.redirect("/cart"); // Redireciona para a página do carrinho para refletir a mudança
+    res.redirect("/cart"); // Redireciona para a página do carrinho
   } catch (error) {
+    console.error(error);
     res.status(500).send("Erro ao diminuir quantidade do produto.");
   }
 });
 
 // Rota para remover um produto do carrinho
-router.post("/removeFromCart/:productId", (req, res) => {
+router.post("/removeFromCart/:productId", async (req, res) => {
   const { productId } = req.params;
-  try {
-    let cart = readFile(cartPath); // Lê o carrinho atual (sem 'await', pois a função é síncrona)
-    cart = cart.filter(item => item.id !== parseInt(productId)); // Remove o produto com o id fornecido
-    writeFile(cartPath, cart); // Grava o carrinho atualizado (sem 'await', pois a função é síncrona)
 
-    // Emite um evento para todos os clientes notificando que o carrinho foi atualizado
-    const io = req.app.io;
-    if (io) {
-      io.emit("updateCart", cart); // Atualiza o carrinho para todos os clientes
+  try {
+    const cart = await cartModel.findOne(); // Obtém o carrinho
+    if (!cart) {
+      return res.status(404).send("Carrinho não encontrado.");
     }
 
-    res.redirect("/cart"); // Redireciona para a página do carrinho para refletir a remoção
+    // Remove o produto do carrinho filtrando os itens
+    cart.items = cart.items.filter(
+      (item) => item.productId.toString() !== productId
+    );
+
+    // Salva o carrinho atualizado no banco de dados
+    await cart.save();
+
+    // Emite o evento WebSocket para atualizar os clientes
+    const io = req.app.io;
+    if (io) {
+      io.emit("updateCart", cart);
+    }
+
+    res.redirect("/cart"); // Redireciona para a página do carrinho
   } catch (error) {
+    console.error(error);
     res.status(500).send("Erro ao remover produto do carrinho.");
   }
 });
-
 
 module.exports = router;
