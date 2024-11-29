@@ -6,6 +6,7 @@ const { engine } = require("express-handlebars");
 const productsRouter = require("./routes/productRoutes");
 const cartsRouter = require("./routes/cartRoutes");
 const handlebars = require('handlebars');
+const mongoose = require("mongoose");
 
 const app = express();
 const server = http.createServer(app);
@@ -21,9 +22,6 @@ app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
 app.set("views", path.join(__dirname, "views"));
 
-const staticPath = path.join(__dirname, "public");
-app.use(express.static(staticPath));
-
 handlebars.registerHelper('gt', function (a, b) {
   return a > b;
 });
@@ -36,6 +34,9 @@ app.use((req, res, next) => {
 // Rotas
 app.use(productsRouter);
 app.use(cartsRouter);
+
+const staticPath = path.join(__dirname, "public");
+app.use(express.static(staticPath));
 
 // WebSocket
 io.on("connection", (socket) => {
@@ -77,6 +78,12 @@ io.on("connection", (socket) => {
   });
 });
 
+mongoose.connect('mongodb+srv://alessandra:coder@clustercoder.n6nab.mongodb.net/?retryWrites=true&w=majority&appName=ClusterCoder')
+  .then(() => {
+    console.log('Conectado ao MongoDB com sucesso');
+  }).catch((error) => {
+    console.log('Erro ao conectar ao MongoDB: ', error);
+  });
 
 // Inicia o servidor
 server.listen(PORT, () => {

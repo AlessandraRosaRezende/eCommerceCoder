@@ -2,19 +2,22 @@
 <ul>
   {{#each cart}}
   <li>
+    <div style="margin-right: 10px;">
+      <img src="{{this.imagemURL}}" alt="Imagem de {{product.name}}" width="50" height="50" style="border-radius: 50%;">
+    </div>
     <strong>{{this.name}}</strong> - {{this.price}} USD - Quantidade: {{this.quantity}}
 
     <!-- Botão para diminuir a quantidade -->
     {{#if this.quantity}}
     {{#if (gt this.quantity 1)}}
-    <form action="/decreaseQuantity/{{this.id}}" method="POST" style="display:inline;">
+    <form action="/decreaseQuantity/{{this._id}}" method="POST" style="display:inline;">
       <button type="submit">Diminuir Quantidade</button>
     </form>
     {{/if}}
     {{/if}}
     
     <!-- Botão para remover o produto -->
-    <form action="/removeFromCart/{{this.id}}" method="POST" style="display:inline;">
+    <form action="/removeFromCart/{{this._id}}" method="POST" style="display:inline;">
       <button type="submit">Remover</button>
     </form>
   
