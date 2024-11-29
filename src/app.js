@@ -22,9 +22,6 @@ app.engine("handlebars", engine());
 app.set("view engine", "handlebars");
 app.set("views", path.join(__dirname, "views"));
 
-const staticPath = path.join(__dirname, "public");
-app.use(express.static(staticPath));
-
 handlebars.registerHelper('gt', function (a, b) {
   return a > b;
 });
@@ -37,6 +34,9 @@ app.use((req, res, next) => {
 // Rotas
 app.use(productsRouter);
 app.use(cartsRouter);
+
+const staticPath = path.join(__dirname, "public");
+app.use(express.static(staticPath));
 
 // WebSocket
 io.on("connection", (socket) => {

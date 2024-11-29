@@ -1,5 +1,5 @@
 <h1>Adicionar Produto</h1>
-<form action="/addproduct" method="post">
+<form action="/addproduct" method="post" enctype="multipart/form-data">
   <label>Nome: </label>
   <input type="text" name="name" required>
   <br>
@@ -8,6 +8,9 @@
   <br>
   <label>Descrição: </label>
   <textarea name="description"></textarea>
+  <br>
+  <label for="image">Imagem:</label>
+  <input type="file" id="imagemURL" name="imagemURL" accept="image/*">
   <br>
   <button type="submit">Adicionar</button>
 </form>

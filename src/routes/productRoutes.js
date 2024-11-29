@@ -1,5 +1,6 @@
 const express = require("express");
 const productModel = require("../models/product.model");
+const upload = require('../multer-config'); // Configuração do multer
 
 const router = express.Router();
 
@@ -62,12 +63,14 @@ router.get("/addproduct", (req, res) => {
   return res.render("addProduct", { title: "Adicionar Produto" });
 });
 
-router.post("/addproduct", async (req, res) => {
+router.post("/addproduct", upload.single('imagemURL'), async (req, res) => {
   try {
+    const imagem = req.file ? `/images/${req.file.filename}` : ''; // Caminho do avatar
     await productModel.create({
       name: req.body.name,
       price: parseFloat(req.body.price),
       description: req.body.description || "",
+      imagemURL: imagem,
     });
   
     let products = await productModel.find();
@@ -99,14 +102,16 @@ router.get("/editproduct/:id", async (req, res) => {
   } 
 });
 
-router.post("/editproduct/:id", async (req, res) => {
+router.post("/editproduct/:id", upload.single('imagemURL'), async (req, res) => {
   try {
     const products = await productModel.findById(req.params.id);
     const { name, price, description } = req.body;
+    const imagem = req.file ? `/images/${req.file.filename}` : ''; // Caminho do avatar
     await productModel.findByIdAndUpdate(req.params.id, {
       name,
       price,
       description,
+      imagemURL: imagem
     });
     if (products) {
       const io = req.app.io;

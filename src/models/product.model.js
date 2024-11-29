@@ -5,7 +5,7 @@ const produtoSchema = new mongoose.Schema({
   name: { type: String, required: true },
   price: { type: Number, required: true },
   description: { type: String, required: true },
-  imagemUrl: { type: String },
+  imagemURL: { type: String },
 });
 
 const Produto = mongoose.model(productCollection, produtoSchema);

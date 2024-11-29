@@ -2,6 +2,9 @@
 <ul>
   {{#each cart}}
   <li>
+    <div style="margin-right: 10px;">
+      <img src="{{this.imagemURL}}" alt="Imagem de {{product.name}}" width="50" height="50" style="border-radius: 50%;">
+    </div>
     <strong>{{this.name}}</strong> - {{this.price}} USD - Quantidade: {{this.quantity}}
 
     <!-- Botão para diminuir a quantidade -->

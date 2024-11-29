@@ -17,7 +17,7 @@ router.get("/cart", async (req, res) => {
         const item = cart.items.find(item => item.productId.toString() === product._id.toString());
         return {
           ...product.toJSON(),
-          quantity: item.quantity
+          quantity: item.quantity,
         };
       });
       return res.render("cart", { title: "Carrinho", cart: productsInCart });

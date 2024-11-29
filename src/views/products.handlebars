@@ -2,11 +2,15 @@
 <ul>
   {{#each products}}
   <li>
-    <strong>{{this.name}}</strong> - {{this.price}} USD
-    <button onclick="location.href='/products/{{this._id}}'">Ver detalhes</button>
-    <button onclick="location.href='/editproduct/{{this._id}}'">Editar</button>
-    <form action="/deleteproduct/{{this._id}}" method="POST" style="display:inline;">
-      <button type="submit">Deletar</button>
+    <br>
+    <div style="margin-right: 10px;">
+      <img src="{{imagemURL}}" alt="Avatar de {{this.name}}" width="50" height="50" style="border-radius: 50%;">
+      <strong>{{this.name}}</strong> - {{this.price}} USD
+      <button onclick="location.href='/products/{{this._id}}'">Ver detalhes</button>
+      <button onclick="location.href='/editproduct/{{this._id}}'">Editar</button>
+      <form action="/deleteproduct/{{this._id}}" method="POST" style="display:inline;">
+        <button type="submit">Deletar</button>
+    </div>
     </form>
   </li>
   {{/each}}
