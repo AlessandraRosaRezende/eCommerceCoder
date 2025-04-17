@@ -1,10 +1,22 @@
-<h1>{{product.name}}</h1>
-<p>Preço: {{product.price}}</p>
-<p>Descrição: {{product.description}}</p>
-<form action="/cart" method="post">
-  <input type="hidden" name="productId" value="{{product.id}}">
-  <label>Quantidade: </label>
-  <input type="number" name="quantity" min="1" value="1" required>
-  <button type="submit">Adicionar ao Carrinho</button>
-</form>
-<a href="/realtimeproducts">Voltar para Produtos</a>
+<div class="product-details-container">
+  <div class="product-header">
+    <h1>{{product.name}}</h1>
+    <p class="product-price">Preço: ${{formatPrice product.price}}</p>
+  </div>
+
+  <div class="product-info">
+    <p class="product-description">{{product.description}}</p>
+  </div>
+
+  <div class="product-actions">
+    <form action="/cart" method="post">
+      <input type="hidden" name="productId" value="{{product._id}}">
+      <div class="quantity-input-group">
+        <label for="quantity">Quantidade:</label>
+        <input type="number" id="quantity" name="quantity" min="1" value="1" required class="quantity-input">
+      </div>
+      <button type="submit" class="btn btn-success btn-add-to-cart">Adicionar ao Carrinho</button>
+    </form>
+    <a href="/products" class="btn btn-secondary">Voltar para Produtos</a>
+  </div>
+</div>

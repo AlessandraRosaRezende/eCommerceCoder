@@ -1,30 +1,72 @@
-<h1>Carrinho</h1>
-<ul>
-  {{#each cart}}
-  <li>
-    <strong>{{this.name}}</strong> - {{this.price}} USD - Quantidade: {{this.quantity}}
+<div class="cart-container">
+  <h1>Carrinho de Compras</h1>
 
-    <!-- Botão para diminuir a quantidade -->
-    {{#if this.quantity}}
-    {{#if (gt this.quantity 1)}}
-    <form action="/decreaseQuantity/{{this.id}}" method="POST" style="display:inline;">
-      <button type="submit">Diminuir Quantidade</button>
-    </form>
-    {{/if}}
-    {{/if}}
-    
-    <!-- Botão para remover o produto -->
-    <form action="/removeFromCart/{{this.id}}" method="POST" style="display:inline;">
-      <button type="submit">Remover</button>
-    </form>
-  
-  </li>
-  {{/each}}
-</ul>
+  {{#if cart.length}}
+  <ul class="cart-item-list">
+    {{#each cart}}
+    <li class="cart-item">
+      <div class="item-details">
+        <h3>{{this.product.name}}</h3>
+        <p class="item-price">Preço Unitário: ${{formatPrice this.product.price}}</p>
+        <div class="quantity-controls">
+          <label for="quantity-{{this.product._id}}">Quantidade:</label>
+          <div class="quantity-input-group">
+            <span class="quantity-value">{{this.quantity}}</span>
+            {{#if this.quantity}}
+            {{#if (gt this.quantity 1)}}
+              <form action="/cart/decreaseQuantity/{{this.product._id}}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-quantity">-</button>
+              </form>
+            {{/if}}
+            {{/if}}
+          </div>
+        </div>
+      </div>
+      <div class="item-actions">
+        <form action="/cart/removeFromCart/{{this.product._id}}" method="POST" style="display:inline;">
+          <button type="submit" class="btn btn-danger btn-sm btn-remove">Remover</button>
+        </form>
+      </div>
+    </li>
+    {{/each}}
+  </ul>
 
-<!-- Formulário para esvaziar o carrinho -->
-{{#if cart.length}}
-  <button id="clear-cart">Esvaziar Carrinho</button>
-{{/if}}
+  <div class="cart-summary">
+    <p class="total-price">Total do Carrinho: ${{formatPrice totalPrice}}</p>
+    <div class="cart-actions-bottom">
+      <button id="clear-cart" class="btn btn-warning">Esvaziar Carrinho</button>
+      <button class="btn btn-success btn-checkout">Finalizar Compra</button>
+      <a href="/products" class="btn btn-secondary">Voltar para Produtos</a>
+    </div>
+  </div>
+  {{else}}
+  <p class="empty-cart">Seu carrinho está vazio.</p>
+  <p><a href="/products" class="btn btn-primary">Voltar para Produtos</a></p>
+  {{/if}}
+</div>
 
-<a href="/realtimeproducts">Voltar para Produtos</a>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const clearCartButton = document.getElementById('clear-cart');
+    if (clearCartButton) {
+      clearCartButton.addEventListener('click', () => {
+        if (confirm('Tem certeza que deseja esvaziar o carrinho?')) {
+          fetch('/clearCart', {
+            method: 'POST',
+          })
+            .then(response => {
+              if (response.ok) {
+                window.location.reload();
+              } else {
+                alert('Erro ao esvaziar o carrinho.');
+              }
+            })
+            .catch(error => {
+              console.error('Erro:', error);
+              alert('Erro ao esvaziar o carrinho.');
+            });
+        }
+      });
+    }
+  });
+</script>

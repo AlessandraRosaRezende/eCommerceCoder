@@ -1,15 +1,106 @@
-<h1>Produtos</h1>
-<ul>
-  {{#each products}}
-  <li>
-    <strong>{{this.name}}</strong> - {{this.price}} USD
-    <button onclick="location.href='/products/{{this.id}}'">Ver detalhes</button>
-    <button onclick="location.href='/editproduct/{{this.id}}'">Editar</button>
-    <form action="/deleteproduct/{{this.id}}" method="post" style="display:inline;">
-      <button type="submit">Deletar</button>
-    </form>
-  </li>
-  {{/each}}
-</ul>
-<button onclick="location.href='/addproduct'">Adicionar Produto</button>
-<a href="/cart">Ver Carrinho</a>
+<div class="products-container">
+  <h1>Lista de Produtos</h1>
+
+  <div class="admin-actions">
+    {{#if user}}
+    {{#if (eq user.role 'admin')}}
+    <a href="/products/admin/addproduct" class="btn btn-success">Cadastrar Novo Produto</a>
+    {{/if}}
+    {{/if}}
+  </div>
+
+  {{#if products.length}}
+  <ul class="product-list">
+    {{#each products}}
+    <li class="product-item">
+      <div class="product-details">
+        <h3>{{this.name}}</h3>
+        <p class="product-price">Preço: ${{formatPrice this.price}}</p>
+        <p class="product-description">{{this.description}}</p>
+      </div>
+      <div class="product-actions">
+        <button onclick="location.href='/products/{{this._id}}'" class="btn btn-info btn-sm">Ver Detalhes</button>
+        {{#if user}}
+        {{#if (eq user.role 'admin')}}
+        <a href="/products/admin/editproduct/{{this._id}}" class="btn btn-warning btn-sm">Editar</a>
+        <form action="/products/admin/deleteproduct/{{this._id}}?_method=DELETE" method="POST" style="display:inline;">
+          <button type="submit" class="btn btn-danger btn-sm">Deletar</button>
+        </form>
+        {{/if}}
+        {{/if}}
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  {{else}}
+  <p class="empty-message">Não há produtos cadastrados.</p>
+  {{/if}}
+
+  <div class="actions-bottom">
+    <a href="/cart" class="btn btn-primary">Ver Carrinho</a>
+  </div>
+</div>
+
+<script>
+  const socket = io();
+
+  socket.on('products', (data) => {
+    console.log('Evento de produto recebido:', data);
+    const productList = document.querySelector('.product-list');
+    const emptyMessage = document.querySelector('.empty-message');
+
+    if (!productList) return;
+
+    if (data.action === 'create') {
+      if (emptyMessage) {
+        emptyMessage.remove();
+      }
+      const newLi = document.createElement('li');
+      newLi.classList.add('product-item');
+      newLi.innerHTML = `
+        <div class="product-details">
+          <h3>${data.product.name}</h3>
+          <p class="product-price">Preço: $${parseFloat(data.product.price).toFixed(2)}</p>
+          <p class="product-description">${data.product.description}</p>
+        </div>
+        <div class="product-actions">
+          <button onclick="location.href='/products/${data.product._id}'" class="btn btn-info btn-sm">Ver Detalhes</button>
+          {{#if user}}
+            {{#if (eq user.role 'admin')}}
+              <a href="/admin/products/edit/${data.product._id}" class="btn btn-warning btn-sm">Editar</a>
+              <form action="/admin/products/${data.product._id}?_method=DELETE" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Deletar</button>
+              </form>
+            {{/if}}
+          {{/if}}
+        </div>
+      `;
+      productList.appendChild(newLi);
+    } else if (data.action === 'update') {
+      const updatedLi = Array.from(productList.children).find(li => li.querySelector('h3').textContent === data.product.name);
+      if (updatedLi) {
+        updatedLi.querySelector('h3').textContent = data.product.name;
+        updatedLi.querySelector('.product-price').textContent = `Preço: $${parseFloat(data.product.price).toFixed(2)}`;
+        updatedLi.querySelector('.product-description').textContent = data.product.description;
+        // Atualizar links e formulários também, se necessário
+        updatedLi.querySelector('.product-actions button:first-child').onclick = () => location.href = `/products/${data.product._id}`;
+        const editLink = updatedLi.querySelector('.product-actions a.btn-warning');
+        if (editLink) editLink.href = `/admin/products/edit/${data.product._id}`;
+        const deleteForm = updatedLi.querySelector('.product-actions form');
+        if (deleteForm) deleteForm.action = `/admin/products/${data.product._id}?_method=DELETE`;
+      }
+    } else if (data.action === 'delete') {
+      const itemToRemove = Array.from(productList.children).find(li => li.querySelector('.product-actions form[action*="/admin/products/${data.productId}?_method=DELETE"]'));
+      if (itemToRemove) {
+        productList.removeChild(itemToRemove);
+        if (productList.children.length === 0) {
+          const newEmptyMessage = document.createElement('p');
+          newEmptyMessage.classList.add('empty-message');
+          newEmptyMessage.textContent = 'Não há produtos cadastrados.';
+          productList.parentNode.insertBefore(newEmptyMessage, productList);
+          productList.remove();
+        }
+      }
+    }
+  });
+</script>

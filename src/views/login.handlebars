@@ -1,0 +1,28 @@
+<div class="login-container">
+  <h1>Login</h1>
+  {{#if error}}
+  <div class="error-message">{{error}}</div>
+  {{/if}}
+  {{#if loginMessage}}
+  <div class="success-message">{{loginMessage}}</div>
+  {{/if}}
+  <form action="/login" method="post" class="login-form">
+    <div class="form-group">
+      <label for="email">E-mail:</label>
+      <input type="email" id="email" name="email" required class="form-control">
+    </div>
+    <div class="form-group">
+      <label for="password">Senha:</label>
+      <input type="password" id="password" name="password" required class="form-control">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+  </form>
+  <div class="options">
+    <p><a href="/forgot-password">Esqueci minha senha</a></p>
+    <p>Ou entre com:</p>
+    <a href="/github" class="btn btn-github btn-block">
+      <i class="fab fa-github"></i> Entrar com GitHub
+    </a>
+    <p>Não tem uma conta? <a href="/register">Registre-se</a></p>
+  </div>
+</div>
